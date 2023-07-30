@@ -12,6 +12,15 @@ import matplotlib.pyplot as plt
 import streamlit as st
 from scipy.interpolate import interp1d
 
+from tensorflow import keras
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import ReLU
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+
 st.set_page_config(layout='wide')
 
 
@@ -46,37 +55,51 @@ class ITTC_resistance:
         self.CR = CR
         self.AT = AT
         self.S = S
-        
+        self.g = 9.81
+        self.vi = 1.188*10**-6
+        self.ros = 1025.9
+        self.ks = 150*10**-6
+
     def calc_RTS(self):
-        vi = 1.188*10**-6
-        ros = 1025.9
-        re = self.V*0.51444*self.Lwl/vi
-        ks = 150*10**-6
-        dCF = (105*(ks/self.Lwl)**(1/3)-0.64)*10**-3
+        re = self.V*0.51444*self.Lwl/self.vi
+        Fr = self.V*0.51444/(np.sqrt(self.Lwl*self.g))
+
+        dCF = (105*(self.ks/self.Lwl)**(1/3)-0.64)*10**-3
         CFS = (0.075/(np.log10(re - 2)**2)) + dCF
         CAA = 0.001*self.AT/self.S
         CTS = CFS*(1+self.k) + dCF + self.CR + CAA   
-        RTS = CTS*0.5*ros*(self.V*0.51444)**2*self.S*10**-3
-        columns = ['V [knots]', 'RTS$ [kN]', 'CTS [10-3]', 'Re [10+8]', 'CFS [10-3]']
-        df = pd.DataFrame(np.array([self.V, RTS, CTS*10**3, re*10**-8, CFS*10**3]).T, columns=columns)
+        RTS = CTS*0.5*self.ros*(self.V*0.51444)**2*self.S*10**-3
+        columns = ['V [knots]', 'Fr [-]', 'RTS [kN]', 'CTS [10-3]', 'Re [10+8]', 'CFS [10-3]', 'CR [10-3]']
+        df = pd.DataFrame(np.array([self.V, Fr, RTS, CTS*10**3, re*10**-8, CFS*10**3, self.CR*10**3]).T, columns=columns).round(2)
         return RTS, df
 
 class resistance:
     def __init__(self, X):
-        Cr_ML = []
+        Cr = []
         self.X = X
-        self.Cr_ML = Cr_ML
+        self.Cr = Cr
         
         
-    def predict_ML(self, model, columns):
+    def predict_DNN(self, model, columns):
         for i in Fr:
             X = self.X
             X = np.insert(X,6,i)
             df = pd.DataFrame([X], columns=columns)
-            self.Cr_ML.append(model.predict(df)[0])
-        return self.Cr_ML
+            arr = np.zeros((2,len(df.columns)))
+            arr[0] = df.values
+            arr[1] = df.values
+            self.Cr.append(model.predict(arr))
+        
+        self.Cr = np.array(self.Cr)[:,0]
+        return self.Cr
 
-
+    def predict_ML(self, model, columns):
+      for i in Fr:
+          X = self.X
+          X = np.insert(X,6,i)
+          df = pd.DataFrame([X], columns=columns)
+          self.Cr.append(model.predict(df)[0])
+      return self.Cr
 class math:
     def __init__(self, V_des, V, RTS):
         self.V_des = V_des
@@ -98,10 +121,10 @@ class plot:
     
     def chart(self, V_des, RTSi):
         fig, ax = plt.subplots(figsize=(8,8))
-        ax.plot(self.V, self.RTS, c='crimson')
+        ax.plot(self.V, self.RTS, c='crimson', marker='o', zorder=1)
         ax.vlines(V_des, 0, RTSi, color='black', linestyle='--', linewidth=1)
         ax.hlines(RTSi, 0, V_des, color='black', linestyle='--', linewidth=1)
-        ax.scatter(V_des, RTSi, c='black')
+        ax.scatter(V_des, RTSi, c='black', zorder=2)
         ax.set_xlabel('V [knots]')
         ax.set_ylabel('$R_{TS}$ [kN]')
         ax.set_xlim(min(V)-1, max(V)+1)
@@ -109,14 +132,37 @@ class plot:
         ax.text(V_des-1.5,RTSi+0.01*RTSi,'RTS = %.1f kN' %RTSi)
         plt.grid()
         return fig
-        
 
+class save:
+    def __init__(self, df, model):
+        self.df = df
+        self.model = model
+    
+    def save_data(self):
+        self.model = self.model.replace(" ", "_")
+        self.model = self.model.lower()
+        self.df.to_csv('%s_pred.csv' %self.model, sep=';')
+        
+def dnn_model():
+    classifier = Sequential()
+    classifier.add(Dense(units=256,activation='relu',input_dim=8,kernel_initializer='he_uniform'))
+    classifier.add(Dense(units=64,activation='relu',kernel_initializer='he_uniform'))
+    classifier.add(Dense(units=48,activation='relu',kernel_initializer='he_uniform'))
+    classifier.add(Dense(units=24,activation='relu',kernel_initializer='he_uniform'))
+    classifier.add(Dense(units=24,activation='relu',kernel_initializer='he_uniform'))
+    classifier.add(Dense(units=12,activation='relu',kernel_initializer='he_uniform'))
+    classifier.add(Dense(units=10,activation='relu',kernel_initializer='he_uniform'))
+    classifier.add(Dense(units=1,activation='linear'))
+    
+    classifier.compile(loss='mean_absolute_error',optimizer=Adam(learning_rate=0.01), metrics='mse')
+    return classifier
             
         
         
 if __name__ == "__main__":    
     
     model = joblib.load(open('ml_model.pkl', 'rb'))
+    dnn_model = joblib.load(open('model_dnn.h5', 'rb'))
     st.sidebar.header('Ship Hydrostatic Data')
     st.header('Machine Learning and Deep Neural Network Ship Resistance Prediction')
     col1, col2 = st.columns(2)
@@ -140,7 +186,7 @@ if __name__ == "__main__":
     with side_col[2]:
         vmax = float(st.text_input('Vmax', 14))
     
-    V = np.arange(vmin,vmax,step)
+    V = np.arange(vmin,vmax+1,step)
     
     feat = features(Ta, Tf, Lwl, B, Disp, V)
     trim, T, CB, BT, Fr = feat.calc()
@@ -154,23 +200,31 @@ if __name__ == "__main__":
     
     X = np.array([k, CB, LCB, CM, CP, BT, trim]) 
     columns = ['k', 'CB', 'LCB', 'CM', 'CP', 'BT','Fr', 'Trim']
-    
-    res = resistance(X)
-    Cr_ML = np.array(res.predict_ML(model, columns))*10**-3
-    
-    res_pred = ITTC_resistance(V, Lwl,k, Cr_ML, AT, S)
+    with col1:
+        model_sel = st.radio('Prediction Model Selection', ('Gradient Boosting Regressor', 'Deep Neaural Network'), horizontal=True)     
+        if model_sel == 'Gradient Boosting Regressor':                 
+            res = resistance(X)
+            Cr = np.array(res.predict_ML(model, columns))*10**-3
+        else:
+            res = resistance(X)
+            Cr = np.array(res.predict_DNN(dnn_model, columns))*10**-3
+
+    res_pred = ITTC_resistance(V, Lwl,k, Cr, AT, S)
     [RTS, df] = res_pred.calc_RTS()
-    
     with col2:
         V_des = float(st.number_input('Design Speed [knots]', value=12.5))
         st.dataframe(df, hide_index=True, use_container_width=True)
+        if st.button('Save Data'):
+            sv = save(df, model_sel)
+            sv.save_data()
+            
     mm = math(V_des, V, RTS)
     RTSi = mm.interp()
     plot = plot(Fr, RTS, V)
     fig = plot.chart(V_des, RTSi)
     with col1:
         st.pyplot(fig, use_container_width=True)
-
+            
 
         
 
