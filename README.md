@@ -1,15 +1,18 @@
-# Merchant Ship Resistance Prediction
+# Fishing Vessel Resistance Prediction
 
 ## Table of Contents
 - [Overwiev](#overview)
 - [Database](#Database)
-- [Screenshot](#screenshot)
-- [Learning Objective](#learning-objective)
+- [Application Screenshot](#application-screenshot)
 - [Tools and Software Requirements](#tools-and-software-requirements)
 - [Packages Requirements](#packages-requirements)
 - [Instalation](#instalationn)
-- [Model](#model)
+- [Features and Target](#features-and-target)
+- [Models and Algorithms](#model-and-algorithms)
 - [Results](#results)
+- [Correleation Matrix](#correlation-matrix)
+- [Resisual Plot](#resisual-plot)
+- [List of Symbols](#list-of-symbols)
 - [Reeferences](#references)
 
 ## Overview
@@ -21,14 +24,12 @@ https://www.prs.pl/uploads/hydronav2023_e_book_web.pdf
 ## Database
 The ML model was built using a database comprises 28 ships that were tested under at least one loading condition. The features (independent variables) were determined through a correlation analysis, and the best ones were selected as inputs for the ML model. The density plots for each of selected features are presented in figure below:
 
-![Screenshot](/Images/features_hist.png)
-
 
 Here is a brief description of the input data:
 
 <b>Length of Waterline LWL [m]</b>: Measurement used to describe the size and design of a ship or boat. It is the length of the hull that is in direct contact with the water when the vessel is afloat and sits at its designed waterline. In other words, it is the length of the portion of the hull that is submerged when the ship is at its operational draft.
 
-<b>Breadth of Waterline B [m]</b>: Measurement used to describe the size and design of a ship or boat. It refers to the width of the hull at the waterline, which is the point where the vessel's hull makes contact with the water surface when afloat at its designed draft.
+<b>Breadth Moulded B [m]</b>: It refers to the maximum width of the ship's hull at a particular cross-section, typically measured from the outermost points on the ship's hull. The breadth moulded measurement is taken at a specific location, usually amidships, which is the midpoint of the ship's length.
 
 <b>Displacement Volume &#8711; [m&#179;]</b>: It represents the weight of water displaced by a ship when it is floating at a specific draft or immersion in the water. In other words, it is the mass of water that is "pushed aside" by the hull of the ship to make room for the vessel to float.
 
@@ -41,6 +42,7 @@ Here is a brief description of the input data:
 <b> Transverse Projected Area of Ship above Waterline AT [m&#179;]</b>: The area above waterline is a two-dimensional measurement and is typically expressed in square meters or square feet. It is calculated by considering the entire cross-sectional area of the ship's hull that is exposed to the air above the waterline. This includes the sides (port and starboard) and any superstructures, deckhouses, or other structures that protrude above the waterline.
 
 <b>Longitudinal Prismatic Coefficient CP</b>: The ratio of the volume of displacement to the volume of a prism having a length equal to the length between perpendiculars and a cross – sectional area equal to the midship sectional area. Mathematically, it can be expressed as: CP = &#8711; / (AW * T)
+
 
 ![Screenshot](/Images/CP.png)
 
@@ -80,10 +82,13 @@ Here is a brief description of the input data:
 3. Install dependencies: pip install -r requirements.txt
 4. Run the project: streamlit run app.py
 
+## Features and Target
+The machine learning and deep neural network model have 8 input features (k, CB, LCB, CM, CP, B/T, Fr, Trim/T), which are calculated from hydrostatic input data. Residual resistance (CR) represents mostly the wave resistance and is the model target. The histogram plot for each feature adn target is shown below:
+
+![Screenshot](/Images/features_hist.png) 
+
+
 ## Models and Algorithms
-
-During preliminary analysis 
-
 <b>Gradient boosting</b> is a powerful machine learning method used for regression and classification tasks, among other applications. It creates a predictive model by combining multiple weak prediction models, often represented as decision trees. When using decision trees as weak learners, the resulting algorithm is called gradient-boosted trees, which has shown to outperform the popular random forest algorithm.
 
 Algorithm for transforming features and target is shown in below figure
@@ -97,30 +102,70 @@ Graph representing neural network used in this project is shown below:
 ![Screenshot](/Images/dnn_plot.png) ![Screenshot](/Images/dnn_model2.png) 
 
 ## Results
+During the preliminary analysis, five machine learning models were scored: Linear SVR, Lasso, Ridge, Extreme Gradient Boosting, Random Forest, and Gradient Boosting. Metrics such as Root Mean Square Error (RMSE), R2-value, etc., are shown in the table below:
 
-![Screenshot](/Images/heatmap.png) ![Screenshot](/Images/residuals.png) 
-
-Classification Report
+Metrics Report
 
 |                         |     RMSE|      MAE|       R2|   p-value|
-|----------------------- :|--------:|--------:|--------:|---------:|
+|------------------------:|--------:|--------:|--------:|---------:|
 |               Linear SVR|     0.58|     0.34|     0.72|   8.9e-25|
 |                    Lasso|     0.38|     0.34|     0.73|   5.3e-25|
 |                    Ridge|     0.51|     0.34|     0.73|   5.2e-25|
 | Extreme Gradine Boosting|     0.18|     0.16|     0.91|   1.2e-41|
 |            Random Forest|     0.24|     0.23|     0.85|   6.7e-33|
 |        Gradient Boosting|     0.14|     0.13|     0.95|   4.5e-50|
+|                         |         |         |         |          |
+|      Deep Neural Network|         |         |     0.92|          |
+|                         |         |         |         |          |
 
-|            |precition|   recall| f1-score| support|
-|-----------:|--------:|--------:|--------:|-------:|
-|           0|     0.93|     0.88|     0.90|      99e-25|
-|           1|     0.80|     0.87|     0.83|      55|
-|            |         |         |         |        |
-|    accuracy|         |         |     0.88|     154|
-|   macro avg|     0.86|     0.88|     0.87|     154|
-|weighted avg|     0.88|     0.88|     0.88|     154|
+Gradient Boosting Regressor was selected as the machine learning model for ship resistance predictions.
 
-![Screenshot](/Images/confussion_matrix.png)
+## Correlation Matrix
+![Screenshot](/Images/heatmap.png) 
+
+## Residual Plot
+![Screenshot](/Images/residuals.png) 
+
+## List of Symbols
+AT - Transverse Projected Area of Ship Above Waterline [m2]
+
+B - Breadth moulded [m]
+
+CB - Block Coefficient [-]
+
+CF - Frictional resistance coefficient of a corresponding plate [-]
+
+CM - Midship Section Coefficient [-]
+
+CP = Longitudinal Prismatic Coefficient [-]
+
+CR - Residuary resistance coefficient [-]
+
+CT - Total resistance coefficient [-]
+
+Fr - Froude Number [-]
+
+k - Hull Form Factor [-]
+
+LCB - Longitudinal Centre of Buoyancy [m]
+
+LWL - Length of waterline [m]
+
+PE - Effective Power [kW]
+
+Re - Raynolds Number [-]
+
+RT - Total Resistance [N]
+
+S - Area of wetted surface [m2]
+
+T - Draught even keel or mean draught at midship section [m]
+
+TA - Draught aft (at aft perpendicular) [m]
+
+TF - Draught fore (at fore perpendicular) [m]
+
+V - Vessel speed [knots]
 
 ## References
 1. M. G. Holtrop J., “An approximate power prediction method,” International Shipbuilding Progress, vol. 29, pp. 166–170, 1978.
