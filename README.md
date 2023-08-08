@@ -22,7 +22,7 @@ Those analysis where presented as a paper on 23RD International Symposium on Hyd
 https://www.prs.pl/uploads/hydronav2023_e_book_web.pdf
 
 ## Database
-The ML model was built using a database comprises 28 ships that were tested under at least one loading condition. The features (independent variables) were determined through a correlation analysis, and the best ones were selected as inputs for the ML model. The density plots for each of selected features are presented in figure below:
+The ML model was built using a database comprises 28 ships that were tested under at least one loading condition. The features (independent variables) were determined through a correlation analysis, and the best ones were selected as inputs for the ML model.
 
 
 Here is a brief description of the input data:
@@ -83,7 +83,7 @@ Here is a brief description of the input data:
 4. Run the project: streamlit run app.py
 
 ## Features and Target
-The machine learning and deep neural network model have 8 input features (k, CB, LCB, CM, CP, B/T, Fr, Trim/T), which are calculated from hydrostatic input data. Residual resistance (CR) represents mostly the wave resistance and is the model target. The histogram plot for each feature adn target is shown below:
+The machine learning and deep neural network model have 8 input features (k, CB, LCB, CM, CP, B/T, Fr, Trim/T), which are calculated from hydrostatic input data. Residual resistance (CR) represents mostly the wave resistance and is the model target. The density plots for each of selected features are presented in figure below:
 
 ![Screenshot](/Images/features_hist.png) 
 
